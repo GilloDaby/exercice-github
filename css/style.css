@@ -1,7 +1,7 @@
 :root {
   --primary: #6a5af9;
   --secondary: #f5317f;
-  --bg: #08061a;
+  --bg: #040217;
   --text: #f5f7ff;
   --muted: rgba(245, 247, 255, 0.7);
   font-family: 'Poppins', 'Segoe UI', sans-serif;
@@ -16,7 +16,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #1b1838, var(--bg));
+  background: radial-gradient(circle at top, #1a1735, var(--bg));
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -24,6 +24,7 @@ body {
   padding: 40px 15px 20px;
   line-height: 1.6;
   overflow-x: hidden;
+  position: relative;
 }
 
 header,
@@ -46,9 +47,9 @@ main {
 }
 
 .hero {
-  background: linear-gradient(120deg, rgba(106, 90, 249, 0.9), rgba(245, 49, 127, 0.8));
+  background: linear-gradient(120deg, rgba(106, 90, 249, 0.85), rgba(245, 49, 127, 0.85));
   border-radius: 30px;
-  padding: 70px 40px;
+  padding: clamp(40px, 6vw, 70px);
   text-align: center;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
   overflow: hidden;
@@ -57,9 +58,9 @@ main {
 .hero::after {
   content: '';
   position: absolute;
-  inset: 20%;
+  inset: 15%;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   filter: blur(80px);
   z-index: -1;
 }
@@ -123,11 +124,12 @@ main {
 
 .section {
   margin-top: 60px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 24px;
   padding: 40px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
   position: relative;
+  z-index: 2;
 }
 
 .section h2 {
@@ -203,7 +205,7 @@ main {
 }
 
 .game__arena {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
   border-radius: 18px;
   min-height: 260px;
   position: relative;
@@ -274,6 +276,8 @@ main {
   font-size: 0.9rem;
   color: var(--muted);
   padding: 10px 0;
+  position: relative;
+  z-index: 2;
 }
 
 @media (max-width: 800px) {
