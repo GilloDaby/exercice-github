@@ -101,6 +101,10 @@
         <article class="mini-game" data-game="dice">
           <h3>Duel de dés</h3>
           <p>Lance deux dés et tente de battre l’IA.</p>
+          <div class="dice__visuals" aria-hidden="true">
+            <div class="dice" data-dice-player>🎲</div>
+            <div class="dice" data-dice-bot>🎲</div>
+          </div>
           <button type="button" class="mini-game__action">Lancer</button>
           <p class="mini-game__status" aria-live="polite">En attente d’un lancer.</p>
         </article>
@@ -136,6 +140,7 @@
     // ---- Fireworks canvas ----
     const canvas = document.getElementById('fireworks');
     const ctx = canvas.getContext('2d');
+    const pageBody = document.body;
     let w, h;
     const particles = [];
     function resize() {
@@ -178,12 +183,22 @@
       }
     }
 
-    function createFirework(x = random(0, w), y = random(0, h / 2)) {
+    function clampToSides(desiredX = random(0, w)) {
+      const sideWidth = Math.max(200, w * 0.18);
+      if (desiredX < w / 2) {
+        return random(0, sideWidth);
+      }
+      return random(w - sideWidth, w);
+    }
+
+    function createFirework(x, y) {
+      const fireworkX = clampToSides(typeof x === 'number' ? x : undefined);
+      const fireworkY = typeof y === 'number' ? y : random(0, h * 0.7);
       const colors = ['#f5317f', '#6a5af9', '#ffdd57', '#67f1ff'];
       const color = colors[Math.floor(Math.random() * colors.length)];
       const count = 60;
       for (let i = 0; i < count; i++) {
-        particles.push(new Particle(x, y, color));
+        particles.push(new Particle(fireworkX, fireworkY, color));
       }
     }
 
@@ -273,6 +288,9 @@
       let readyToClick = false;
       let goTime = 0;
       let reactionTimeout;
+      const resetLaserOverlay = () => {
+        pageBody.classList.remove('laser-wait', 'laser-go');
+      };
 
       function armReaction() {
         clearTimeout(reactionTimeout);
@@ -280,12 +298,16 @@
         status.textContent = 'Prépare-toi...';
         button.textContent = 'Patiente...';
         button.disabled = true;
+        pageBody.classList.add('laser-wait');
+        pageBody.classList.remove('laser-go');
         reactionTimeout = setTimeout(() => {
           button.disabled = false;
           button.textContent = 'Clique !';
           status.textContent = 'GO !';
           readyToClick = true;
           goTime = performance.now();
+          pageBody.classList.add('laser-go');
+          pageBody.classList.remove('laser-wait');
         }, random(800, 2500));
       }
 
@@ -298,6 +320,13 @@
         status.textContent = `Réflexe : ${reaction} ms`;
         button.textContent = 'Rejouer';
         readyToClick = false;
+        resetLaserOverlay();
+      });
+
+      reactionCard.addEventListener('mouseleave', () => {
+        if (!readyToClick) {
+          pageBody.classList.remove('laser-wait');
+        }
       });
     }
 
@@ -308,20 +337,37 @@
       let tapScore = 0;
       let tapTimer;
       let tapPlaying = false;
+      let tapLocked = false;
+      let tapCooldownHandle;
+      const TAP_COOLDOWN = 1400;
+
+      function endTapRound() {
+        tapPlaying = false;
+        tapLocked = true;
+        const plural = tapScore > 1 ? 's' : '';
+        status.textContent = `${tapScore} clic${plural} en 3s — clique pour recommencer.`;
+        button.textContent = 'Respire...';
+        button.disabled = true;
+        tapCooldownHandle = setTimeout(() => {
+          tapLocked = false;
+          button.disabled = false;
+          button.textContent = 'Relancer';
+        }, TAP_COOLDOWN);
+      }
 
       button.addEventListener('click', () => {
+        if (tapLocked) {
+          return;
+        }
         if (!tapPlaying) {
           tapPlaying = true;
           tapScore = 0;
           status.textContent = '0 clic';
           button.textContent = 'Clique vite !';
+          button.disabled = false;
           clearTimeout(tapTimer);
-          tapTimer = setTimeout(() => {
-            tapPlaying = false;
-            const plural = tapScore > 1 ? 's' : '';
-            status.textContent = `${tapScore} clic${plural} en 3s`;
-            button.textContent = 'Rejouer';
-          }, 3000);
+          clearTimeout(tapCooldownHandle);
+          tapTimer = setTimeout(endTapRound, 3000);
           return;
         }
         tapScore++;
@@ -377,25 +423,48 @@
     if (diceCard) {
       const button = diceCard.querySelector('.mini-game__action');
       const status = diceCard.querySelector('.mini-game__status');
+      const playerDice = diceCard.querySelector('[data-dice-player]');
+      const botDice = diceCard.querySelector('[data-dice-bot]');
+      const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
       let playerWins = 0;
       let botWins = 0;
       let draws = 0;
+      let rolling = false;
 
       button.addEventListener('click', () => {
-        const playerRoll = Math.floor(random(1, 7));
-        const botRoll = Math.floor(random(1, 7));
-        let resultText = '';
-        if (playerRoll > botRoll) {
-          playerWins++;
-          resultText = 'Tu gagnes !';
-        } else if (playerRoll < botRoll) {
-          botWins++;
-          resultText = 'Ça passe pas...';
-        } else {
-          draws++;
-          resultText = 'Égalité parfaite.';
-        }
-        status.textContent = `${resultText} Toi ${playerRoll} vs IA ${botRoll} — Score ${playerWins}-${botWins} (${draws} =).`;
+        if (rolling) return;
+        rolling = true;
+        button.disabled = true;
+        status.textContent = 'Les dés roulent...';
+        playerDice.classList.add('is-rolling');
+        botDice.classList.add('is-rolling');
+        const shuffle = setInterval(() => {
+          playerDice.textContent = diceFaces[Math.floor(random(0, diceFaces.length))];
+          botDice.textContent = diceFaces[Math.floor(random(0, diceFaces.length))];
+        }, 90);
+        setTimeout(() => {
+          clearInterval(shuffle);
+          const playerRoll = Math.floor(random(1, 7));
+          const botRoll = Math.floor(random(1, 7));
+          playerDice.textContent = diceFaces[playerRoll - 1];
+          botDice.textContent = diceFaces[botRoll - 1];
+          playerDice.classList.remove('is-rolling');
+          botDice.classList.remove('is-rolling');
+          button.disabled = false;
+          rolling = false;
+          let resultText = '';
+          if (playerRoll > botRoll) {
+            playerWins++;
+            resultText = 'Tu gagnes !';
+          } else if (playerRoll < botRoll) {
+            botWins++;
+            resultText = 'Ça passe pas...';
+          } else {
+            draws++;
+            resultText = 'Égalité parfaite.';
+          }
+          status.textContent = `${resultText} Toi ${playerRoll} vs IA ${botRoll} — Score ${playerWins}-${botWins} (${draws} =).`;
+        }, 900);
       });
     }
 
@@ -423,6 +492,36 @@
         {
           question: 'Quelle balise HTML contient le contenu principal ?',
           options: ['<main>', '<footer>', '<meta>'],
+          answer: 0
+        },
+        {
+          question: 'Quel attribut HTML rend un champ obligatoire ?',
+          options: ['required', 'disabled', 'placeholder'],
+          answer: 0
+        },
+        {
+          question: 'Quelle unité CSS est relative à la taille de police du parent ?',
+          options: ['em', 'px', 'vh'],
+          answer: 0
+        },
+        {
+          question: 'Quel mot-clé JavaScript déclare une constante ?',
+          options: ['const', 'let', 'var'],
+          answer: 0
+        },
+        {
+          question: 'Quelle méthode JS sélectionne le premier élément correspondant à un sélecteur CSS ?',
+          options: ['querySelector', 'getElementById', 'getElementsByTagName'],
+          answer: 0
+        },
+        {
+          question: 'Quel outil est pensé pour le versionnement de code ?',
+          options: ['Git', 'Excel', 'Figma'],
+          answer: 0
+        },
+        {
+          question: 'Quelle propriété CSS crée un espace intérieur ?',
+          options: ['padding', 'margin', 'border'],
           answer: 0
         }
       ];
@@ -462,6 +561,58 @@
 
       loadQuestion();
     }
+
+    const miniGameCards = Array.from(document.querySelectorAll('.mini-game'));
+    const fullscreenSupported = typeof document.fullscreenEnabled === 'undefined' || document.fullscreenEnabled;
+
+    miniGameCards.forEach((card) => {
+      const fullscreenBtn = document.createElement('button');
+      fullscreenBtn.type = 'button';
+      fullscreenBtn.className = 'mini-game__fullscreen';
+      fullscreenBtn.textContent = 'Plein écran';
+      fullscreenBtn.setAttribute('aria-label', 'Activer le mode plein écran');
+      card.insertAdjacentElement('afterbegin', fullscreenBtn);
+
+      if (!fullscreenSupported || typeof card.requestFullscreen !== 'function') {
+        fullscreenBtn.hidden = true;
+        return;
+      }
+
+      fullscreenBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (document.fullscreenElement === card) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+          return;
+        }
+        if (document.fullscreenElement && document.exitFullscreen) {
+          const exitResult = document.exitFullscreen();
+          if (exitResult && typeof exitResult.then === 'function') {
+            exitResult.then(() => card.requestFullscreen());
+          } else {
+            card.requestFullscreen();
+          }
+          return;
+        }
+        card.requestFullscreen();
+      });
+    });
+
+    function syncFullscreenButtons() {
+      const active = document.fullscreenElement;
+      miniGameCards.forEach((card) => {
+        const btn = card.querySelector('.mini-game__fullscreen');
+        if (!btn || btn.hidden) return;
+        const isActive = active === card;
+        btn.classList.toggle('is-active', isActive);
+        btn.textContent = isActive ? 'Quitter plein écran' : 'Plein écran';
+        btn.setAttribute('aria-label', isActive ? 'Quitter le mode plein écran' : 'Activer le mode plein écran');
+      });
+    }
+
+    document.addEventListener('fullscreenchange', syncFullscreenButtons);
+    syncFullscreenButtons();
   </script>
 </body>
 </html>

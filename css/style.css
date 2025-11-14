@@ -27,6 +27,16 @@ body {
   position: relative;
 }
 
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: transparent;
+  transition: background 0.25s ease;
+  z-index: 1;
+}
+
 header,
 main,
 footer {
@@ -44,6 +54,14 @@ main {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+}
+
+body.laser-wait::after {
+  background: rgba(245, 49, 127, 0.15);
+}
+
+body.laser-go::after {
+  background: rgba(46, 255, 149, 0.2);
 }
 
 .hero {
@@ -256,6 +274,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
 }
 
 .mini-game__status {
@@ -308,6 +327,88 @@ main {
 
 .mini-game__option.is-wrong {
   background: rgba(245, 49, 127, 0.3);
+}
+
+.mini-game__fullscreen {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.35);
+  color: white;
+  transition: background 0.2s ease, transform 0.2s ease;
+  z-index: 2;
+}
+
+.mini-game__fullscreen:hover {
+  background: rgba(0, 0, 0, 0.55);
+  transform: translateY(-1px);
+}
+
+.mini-game__fullscreen.is-active {
+  background: rgba(103, 241, 255, 0.4);
+  color: #07101f;
+}
+
+.mini-game:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  padding: min(4vw, 40px);
+  margin: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  background: radial-gradient(circle at top, rgba(106, 90, 249, 0.4), rgba(4, 2, 23, 0.98));
+  box-shadow: none;
+}
+
+.mini-game:fullscreen .mini-game__fullscreen {
+  top: 20px;
+  right: 20px;
+}
+
+.dice__visuals {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0 10px;
+}
+
+.dice__visuals .dice {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  transition: transform 0.4s ease;
+}
+
+.dice.is-rolling {
+  animation: dice-spin 0.5s linear infinite;
+}
+
+@keyframes dice-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(90deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(180deg) scale(1);
+  }
 }
 
 .newsletter {
